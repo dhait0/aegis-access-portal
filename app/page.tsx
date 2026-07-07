@@ -1,110 +1,123 @@
+import { AuditEntry } from "@/components/audit-entry";
 import { Panel } from "@/components/panel";
-import { StatCard } from "@/components/stat-card";
-import { Timeline } from "@/components/timeline";
-import { auditTrail, policyChecks, requests, roles, stats } from "@/lib/access-data";
+import { QueueRow } from "@/components/queue-row";
+import { SignalTile } from "@/components/signal-tile";
+import {
+  auditTrail,
+  commandSignals,
+  policyRules,
+  queueItems,
+  roleLattice,
+  securityMetrics,
+} from "@/lib/access-data";
 
 export default function HomePage() {
   return (
-    <main className="page-shell">
-      <div className="page-shell__wash" aria-hidden="true">
-        <span className="wash wash--amber" />
-        <span className="wash wash--cyan" />
-        <span className="wash wash--coral" />
-        <span className="grid-overlay" />
+    <main className="console-shell">
+      <div className="console-shell__backdrop" aria-hidden="true">
+        <span className="glow glow--lime" />
+        <span className="glow glow--amber" />
+        <span className="glow glow--rose" />
+        <span className="grid-lines" />
       </div>
 
-      <div className="page-shell__content">
-        <header className="hero">
-          <div className="hero__topline">
-            <span className="brand-mark">Aegis / Access</span>
-            <span className="status-pill">Live policy / Política activa</span>
+      <div className="console-shell__content">
+        <header className="topbar">
+          <div className="topbar__brand">
+            <span className="brand-mark">Aegis</span>
+            <span className="brand-copy">Security console / Consola de seguridad</span>
           </div>
-
-          <div className="hero__grid">
-            <div className="hero__copy">
-              <p className="eyebrow">Access control / Control de acceso</p>
-              <h1>Access approvals.</h1>
-              <p>
-                English: Review who can enter, who approved it, and how every change was recorded.
-              </p>
-              <p>
-                Español: Revisa quién tiene acceso, quién aprobó y cómo quedó registrado cada
-                cambio.
-              </p>
-            </div>
-
-            <Panel>
-              <div className="hero-card">
-                <p className="eyebrow">Directory sync / Sincronización</p>
-                <h2>Healthy / Saludable</h2>
-                <p>5 minutes ago / hace 5 minutos</p>
-                <div className="hero-card__bars">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              </div>
-            </Panel>
-          </div>
-
-          <div className="hero__actions">
-            <button type="button" className="primary-button">
-              Review access / Revisar acceso
-            </button>
-            <button type="button" className="secondary-button">
-              Export audit / Exportar auditoría
-            </button>
+          <div className="topbar__status">
+            <span className="status-token">Zero trust / Confianza cero</span>
+            <span className="status-token status-token--soft">Sync 2m ago / Sync hace 2m</span>
           </div>
         </header>
 
-        <section className="stats-grid" aria-label="Portal metrics">
-          {stats.map((item) => (
-            <StatCard key={item.label} {...item} />
+        <section className="hero-grid">
+          <div className="hero-copy">
+            <p className="eyebrow">Access decisions / Decisiones de acceso</p>
+            <h1>Access approvals without the noise.</h1>
+            <p>
+              English: This console shows access requests, policy checks, and audit evidence in a
+              single operating view.
+            </p>
+            <p>
+              Español: Esta consola muestra solicitudes de acceso, validaciones de política y
+              evidencia de auditoría en una sola vista operativa.
+            </p>
+
+            <div className="hero-actions">
+              <button type="button" className="primary-button">
+                Review queue / Revisar cola
+              </button>
+              <button type="button" className="secondary-button">
+                Export log / Exportar log
+              </button>
+            </div>
+          </div>
+
+          <Panel>
+            <div className="signal-panel">
+              <div className="signal-panel__header">
+                <p className="eyebrow">Live signals / Señales en vivo</p>
+                <span className="signal-panel__badge">Policy live</span>
+              </div>
+              <div className="signal-panel__orbit" aria-hidden="true">
+                <div />
+                <div />
+                <div />
+              </div>
+              <div className="signal-panel__list">
+                {commandSignals.map((signal) => (
+                  <SignalTile key={signal.label} {...signal} />
+                ))}
+              </div>
+            </div>
+          </Panel>
+        </section>
+
+        <section className="metric-strip" aria-label="Security metrics">
+          {securityMetrics.map((metric) => (
+            <article key={metric.label} className={`metric-chip metric-chip--${metric.tone}`}>
+              <p>{metric.label}</p>
+              <div className="metric-chip__value-row">
+                <strong>{metric.value}</strong>
+                <span>{metric.delta}</span>
+              </div>
+            </article>
           ))}
         </section>
 
-        <section className="workspace">
-          <div className="workspace__main">
+        <section className="workspace-grid">
+          <div className="workspace-grid__left">
             <Panel>
-              <div className="section-head">
+              <div className="section-head section-head--condensed">
                 <div>
-                  <p className="eyebrow">Requests / Solicitudes</p>
-                  <h2>Pending access approvals</h2>
+                  <p className="eyebrow">Queue / Cola</p>
+                  <h2>Pending access reviews</h2>
                 </div>
-                <p>Queue and notes / Cola y notas</p>
+                <p>Current queue / Cola actual</p>
               </div>
 
-              <div className="request-list">
-                {requests.map((request) => (
-                  <article key={request.user} className="request-card">
-                    <div className="request-card__title">
-                      <div>
-                        <h3>{request.user}</h3>
-                        <p>{request.team}</p>
-                      </div>
-                      <span className="request-status">{request.status}</span>
-                    </div>
-                    <div className="request-card__meta">
-                      <span>{request.role}</span>
-                      <span>{request.note}</span>
-                    </div>
-                  </article>
+              <div className="queue-list">
+                {queueItems.map((item) => (
+                  <QueueRow key={item.user} {...item} />
                 ))}
               </div>
             </Panel>
 
             <Panel>
-              <div className="section-head">
+              <div className="section-head section-head--condensed">
                 <div>
                   <p className="eyebrow">Roles / Roles</p>
-                  <h2>Permission matrix</h2>
+                  <h2>Role lattice</h2>
                 </div>
-                <p>Scope by role / Alcance por rol</p>
+                <p>Scope by persona / Alcance por perfil</p>
               </div>
 
-              <div className="role-grid">
-                {roles.map((role) => (
-                  <article key={role.name} className={`role-card role-card--${role.accent}`}>
+              <div className="role-lattice">
+                {roleLattice.map((role) => (
+                  <article key={role.name} className={`role-lattice__card role-lattice__card--${role.accent}`}>
                     <h3>{role.name}</h3>
                     <p>{role.scope}</p>
                   </article>
@@ -113,37 +126,40 @@ export default function HomePage() {
             </Panel>
           </div>
 
-          <aside className="workspace__side">
+          <aside className="workspace-grid__right">
             <Panel>
-              <div className="section-head">
+              <div className="section-head section-head--condensed">
                 <div>
                   <p className="eyebrow">Audit / Auditoría</p>
-                  <h2>Change log</h2>
+                  <h2>Immutable activity</h2>
                 </div>
                 <p>Who changed what / Quién cambió qué</p>
               </div>
 
-              <ul className="timeline">
+              <ul className="audit-list">
                 {auditTrail.map((entry) => (
-                  <Timeline key={entry.title} {...entry} />
+                  <AuditEntry key={entry.title} {...entry} />
                 ))}
               </ul>
             </Panel>
 
             <Panel>
-              <div className="section-head">
+              <div className="section-head section-head--condensed">
                 <div>
                   <p className="eyebrow">Policy / Política</p>
-                  <h2>Enforcement checks</h2>
+                  <h2>Enforcement rules</h2>
                 </div>
-                <p>Guardrails / Controles</p>
+                <p>Guardrails / Guardarraíles</p>
               </div>
 
-              <ul className="policy-list">
-                {policyChecks.map((check) => (
-                  <li key={check}>{check}</li>
+              <div className="policy-stack">
+                {policyRules.map((rule) => (
+                  <article key={rule.title} className="policy-card">
+                    <h3>{rule.title}</h3>
+                    <p>{rule.note}</p>
+                  </article>
                 ))}
-              </ul>
+              </div>
             </Panel>
           </aside>
         </section>

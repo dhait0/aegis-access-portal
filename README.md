@@ -4,9 +4,9 @@ Aegis Access Portal / Portal de acceso Aegis
 
 ## Overview
 
-English: Aegis Access Portal is a bilingual access-control demo focused on approvals, role management, and audit visibility.
+English: Aegis Access Portal is a bilingual security-console demo focused on approvals, role management, and audit visibility.
 
-Español: Aegis Access Portal es un demo bilingüe de control de acceso enfocado en aprobaciones, gestión de roles y visibilidad de auditoría.
+Español: Aegis Access Portal es un demo bilingüe de consola de seguridad enfocado en aprobaciones, gestión de roles y visibilidad de auditoría.
 
 ## Features
 
@@ -15,6 +15,7 @@ Español: Aegis Access Portal es un demo bilingüe de control de acceso enfocado
 - English: Role and permission matrix / Español: Matriz de roles y permisos
 - English: Audit trail and policy checks / Español: Auditoría y validaciones de política
 - English: Responsive layout with a distinct visual identity / Español: Layout responsivo con identidad visual distinta
+- English: Bilingual copy designed for client readability / Español: Copia bilingüe pensada para clientes
 
 ## Architecture
 
@@ -68,9 +69,9 @@ package.json
 
 ## Why this project exists
 
-English: This project demonstrates a more advanced enterprise pattern than the first demo by focusing on access control and audit workflows.
+English: This project demonstrates a more advanced enterprise pattern than the first demo by focusing on access control, audit workflows, and a differentiated security-console interface.
 
-Español: Este proyecto demuestra un patrón enterprise más avanzado que el primer demo, centrado en control de acceso y auditoría.
+Español: Este proyecto demuestra un patrón enterprise más avanzado que el primer demo, centrado en control de acceso, auditoría y una interfaz de consola de seguridad claramente diferenciada.
 
 ## License
 

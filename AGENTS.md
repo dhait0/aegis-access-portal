@@ -8,6 +8,8 @@ Build a bilingual access-control demo that feels like a real enterprise product,
 
 - Keep the UI distinct from other portfolio demos.
 - Use unique colors, layout, and typography for this repo.
+- Never reuse the same card rhythm, spacing pattern, or visual hierarchy from another demo.
+- Avoid generic dashboards; every screen should feel intentionally authored for this product.
 - Pair English and Spanish copy so clients can understand it quickly.
 - Use AI as support, not as the final design author.
 - Each project should own its component patterns and page rhythm.
@@ -17,4 +19,3 @@ Build a bilingual access-control demo that feels like a real enterprise product,
 - Include `README.md`, `docs/`, `LICENSE`, `.env.example`, `.gitignore`, and screenshots.
 - Keep code production-ready and TypeScript strict.
 - Document architecture, implementation, decisions, and future improvements.
-

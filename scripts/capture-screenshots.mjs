@@ -4,47 +4,42 @@ import sharp from "sharp";
 
 const outputDir = new URL("../public/screenshots/", import.meta.url);
 
-const stats = [
-  { label: "Open requests / Solicitudes abiertas", value: "24", delta: "+6 today / +6 hoy", tone: "#f59e0b" },
-  { label: "Approved roles / Roles aprobados", value: "18", delta: "+2 this week / +2 esta semana", tone: "#34d399" },
-  { label: "Policy exceptions / Excepciones", value: "3", delta: "1 needs review / 1 en revisión", tone: "#fb7185" },
-  { label: "Sync freshness / Actualización", value: "5m", delta: "Directory healthy / Directorio sano", tone: "#22d3ee" },
+const metrics = [
+  { label: "MFA coverage / Cobertura MFA", value: "96%", delta: "+4 points / +4 puntos", tone: "#c7ff55" },
+  { label: "Guest reviews / Revisiones guest", value: "7", delta: "2 waiting / 2 en espera", tone: "#ffb84d" },
+  { label: "Break-glass sessions / Sesiones de emergencia", value: "2", delta: "Reviewed / Revisadas", tone: "#ff6f8f" },
+  { label: "Audit lag / Retardo de auditoría", value: "2m", delta: "Within target / En objetivo", tone: "#6fe7ff" },
 ];
 
-const requests = [
-  {
-    user: "Maya Chen / Maya Chen",
-    team: "Finance Operations / Operaciones de finanzas",
-    role: "Approver / Aprobador",
-    status: "Pending / Pendiente",
-    note: "Requires manager approval. / Requiere aprobación del manager.",
-  },
-  {
-    user: "Diego Alvarez / Diego Alvarez",
-    team: "Customer Success / Éxito del cliente",
-    role: "Read-only / Solo lectura",
-    status: "Approved / Aprobado",
-    note: "Temporary access until Friday. / Acceso temporal hasta el viernes.",
-  },
+const signals = [
+  { label: "Identity trust / Confianza", value: "High / Alta", detail: "Device posture and MFA are green." },
+  { label: "Contractors / Contratistas", value: "Watch / Vigilar", detail: "Two accounts expire today." },
+  { label: "Incident bridge / Puente", value: "Ready / Listo", detail: "Break-glass route pre-approved." },
+];
+
+const queue = [
+  { user: "Maya Chen / Maya Chen", access: "Vendor VPN / VPN proveedor", status: "Pending / Pendiente" },
+  { user: "Diego Alvarez / Diego Alvarez", access: "Finance export / Exportación finanzas", status: "Approved / Aprobado" },
+  { user: "Sofia Patel / Sofia Patel", access: "Security console / Consola seguridad", status: "Review / Revisión" },
+];
+
+const audit = [
+  { title: "Access granted / Acceso aprobado", detail: "Vendor VPN -> Maya Chen", time: "3m / 3 min" },
+  { title: "Policy tightened / Política reforzada", detail: "MFA required for exports", time: "18m / 18 min" },
+  { title: "Session expired / Sesión expirada", detail: "Temporary cover closed", time: "1h / 1 h" },
+];
+
+const rules = [
+  "MFA for privileged roles / MFA para roles privilegiados",
+  "Temporary access expiry / Expiración temporal",
+  "Traceable approvals / Aprobaciones trazables",
 ];
 
 const roles = [
-  { name: "Owner / Propietario", scope: "Full control / Control total", accent: "#f59e0b" },
-  { name: "Admin / Administrador", scope: "User and policy management / Gestión de usuarios y políticas", accent: "#34d399" },
-  { name: "Analyst / Analista", scope: "Reports and exports / Reportes y exportaciones", accent: "#22d3ee" },
-  { name: "Viewer / Lector", scope: "Read-only access / Solo lectura", accent: "#fb7185" },
-];
-
-const auditTrail = [
-  { title: "Access granted / Acceso aprobado", detail: "Finance Operations -> Approver", time: "3m ago / hace 3 min" },
-  { title: "Policy rule updated / Regla actualizada", detail: "Admin scope now requires MFA", time: "18m ago / hace 18 min" },
-  { title: "Sync completed / Sincronización completada", detail: "Directory refresh finished with no drift", time: "Today / Hoy" },
-];
-
-const policyChecks = [
-  "MFA required for elevated roles / MFA obligatorio para roles elevados",
-  "Temporary access expires automatically / Acceso temporal expira solo",
-  "Approval chain recorded in audit log / Cadena de aprobación en auditoría",
+  { label: "Owner / Propietario", accent: "#ffb84d" },
+  { label: "Admin / Administrador", accent: "#c7ff55" },
+  { label: "Analyst / Analista", accent: "#6fe7ff" },
+  { label: "Viewer / Lector", accent: "#ff6f8f" },
 ];
 
 function esc(value) {
@@ -56,152 +51,312 @@ function esc(value) {
     .replaceAll("'", "&apos;");
 }
 
-function pageSvg(width, height, mobile = false) {
-  const statCards = stats
-    .map((item, index) => {
-      const x = mobile ? 20 + (index % 2) * 174 : 20 + index * 292;
-      const y = mobile ? 390 + Math.floor(index / 2) * 136 : 356;
-      return `
-        <g transform="translate(${x}, ${y})">
-          <rect width="${mobile ? 156 : 274}" height="118" rx="18" fill="rgba(17,26,38,0.95)" stroke="rgba(255,255,255,0.1)" />
-          <text x="16" y="30" fill="#9fb0c7" font-size="10" letter-spacing="2">${esc(item.label)}</text>
-          <text x="16" y="72" fill="#eef3fb" font-size="${mobile ? 28 : 34}" font-weight="700">${esc(item.value)}</text>
-          <rect x="${mobile ? 88 : 196}" y="50" width="62" height="24" rx="12" fill="rgba(255,255,255,0.05)" />
-          <text x="${mobile ? 119 : 227}" y="66" text-anchor="middle" fill="${item.tone}" font-size="10" font-weight="700">${esc(item.delta)}</text>
-        </g>`;
-    })
+function wrap(text, size) {
+  return text.length > size ? `${text.slice(0, size - 1)}…` : text;
+}
+
+function desktopSvg() {
+  const metricCards = metrics
+    .map(
+      (m, i) => `
+        <g transform="translate(${36 + i * 336}, 360)">
+          <rect width="314" height="114" rx="18" fill="rgba(15,18,17,0.95)" stroke="rgba(255,255,255,0.08)" />
+          <text x="16" y="30" fill="#9ca79f" font-size="10" letter-spacing="2.2">${esc(m.label)}</text>
+          <text x="16" y="72" fill="#f3f5ef" font-size="34" font-weight="700">${esc(m.value)}</text>
+          <rect x="188" y="48" width="110" height="24" rx="12" fill="rgba(255,255,255,0.04)" />
+          <text x="243" y="65" text-anchor="middle" fill="${m.tone}" font-size="10" font-weight="700">${esc(m.delta)}</text>
+        </g>`,
+    )
     .join("");
 
-  const requestCards = requests
-    .map((item, index) => {
-      const y = mobile ? 1260 + index * 120 : 560 + index * 126;
-      return `
-        <g transform="translate(${mobile ? 20 : 20}, ${y})">
-          <rect width="${mobile ? 350 : 740}" height="108" rx="18" fill="rgba(17,26,38,0.95)" stroke="rgba(255,255,255,0.1)" />
-          <text x="16" y="28" fill="#eef3fb" font-size="13" font-weight="700">${esc(item.user)}</text>
-          <text x="16" y="48" fill="#9fb0c7" font-size="11">${esc(item.team)}</text>
-          <text x="16" y="78" fill="#eef3fb" font-size="11">${esc(item.role)}</text>
-          <text x="${mobile ? 250 : 620}" y="28" fill="#22d3ee" font-size="10" font-weight="700">${esc(item.status)}</text>
-          <text x="${mobile ? 250 : 620}" y="78" fill="#9fb0c7" font-size="11">${esc(item.note)}</text>
-        </g>`;
-    })
+  const signalTiles = signals
+    .map(
+      (s, i) => `
+        <g transform="translate(0, ${18 + i * 102})">
+          <rect width="356" height="90" rx="16" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.05)" />
+          <text x="16" y="24" fill="#9ca79f" font-size="10" letter-spacing="2">${esc(s.label)}</text>
+          <text x="16" y="50" fill="#f3f5ef" font-size="19" font-weight="700">${esc(s.value)}</text>
+          <text x="16" y="74" fill="#9ca79f" font-size="11">${esc(s.detail)}</text>
+        </g>`,
+    )
     .join("");
 
-  const roleCards = roles
-    .map((item, index) => {
-      const x = mobile ? 20 : 20 + (index % 2) * 358;
-      const y = mobile ? 1488 + index * 104 : 820 + Math.floor(index / 2) * 108;
-      return `
-        <g transform="translate(${x}, ${y})">
-          <rect width="${mobile ? 350 : 340}" height="92" rx="18" fill="rgba(17,26,38,0.95)" stroke="rgba(255,255,255,0.1)" />
-          <rect x="16" y="18" width="10" height="56" rx="5" fill="${item.accent}" />
-          <text x="36" y="35" fill="#eef3fb" font-size="13" font-weight="700">${esc(item.name)}</text>
-          <text x="36" y="60" fill="#9fb0c7" font-size="11">${esc(item.scope)}</text>
-        </g>`;
-    })
+  const queueRows = queue
+    .map(
+      (q, i) => `
+        <g transform="translate(0, ${106 + i * 96})">
+          <rect width="706" height="84" rx="16" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.05)" />
+          <text x="16" y="26" fill="#f3f5ef" font-size="15" font-weight="700">${esc(wrap(q.user, 34))}</text>
+          <text x="16" y="48" fill="#9ca79f" font-size="11">${esc(wrap(q.access, 40))}</text>
+          <rect x="562" y="20" width="126" height="24" rx="12" fill="rgba(255,255,255,0.04)" />
+          <text x="625" y="37" text-anchor="middle" fill="#6fe7ff" font-size="10" font-weight="700">${esc(q.status)}</text>
+        </g>`,
+    )
     .join("");
 
-  const auditItems = auditTrail
-    .map((item, index) => {
-      const y = mobile ? 1840 + index * 84 : 560 + index * 88;
-      return `
-        <g transform="translate(${mobile ? 20 : 800}, ${y})">
-          <circle cx="6" cy="8" r="5" fill="#f59e0b" />
-          <text x="20" y="12" fill="#eef3fb" font-size="12" font-weight="700">${esc(item.title)}</text>
-          <text x="20" y="32" fill="#9fb0c7" font-size="10">${esc(item.detail)}</text>
-          <text x="20" y="50" fill="#9fb0c7" font-size="10">${esc(item.time)}</text>
-        </g>`;
-    })
+  const auditItems = audit
+    .map(
+      (a, i) => `
+        <g transform="translate(0, ${104 + i * 92})">
+          <circle cx="6" cy="8" r="5" fill="#c7ff55" />
+          <text x="20" y="12" fill="#f3f5ef" font-size="13" font-weight="700">${esc(a.title)}</text>
+          <text x="20" y="32" fill="#9ca79f" font-size="11">${esc(a.detail)}</text>
+          <text x="20" y="52" fill="#9ca79f" font-size="10">${esc(a.time)}</text>
+        </g>`,
+    )
     .join("");
 
-  const policyItems = policyChecks
-    .map((item, index) => {
-      const y = mobile ? 2104 + index * 48 : 840 + index * 52;
-      return `
-        <g transform="translate(${mobile ? 20 : 800}, ${y})">
-          <rect width="${mobile ? 350 : 360}" height="40" rx="12" fill="rgba(255,255,255,0.04)" />
-          <text x="16" y="25" fill="#9fb0c7" font-size="10">${esc(item)}</text>
-        </g>`;
-    })
+  const rulesItems = rules
+    .map(
+      (r, i) => `
+        <g transform="translate(0, ${94 + i * 52})">
+          <rect width="382" height="40" rx="12" fill="rgba(255,255,255,0.03)" />
+          <text x="14" y="25" fill="#9ca79f" font-size="11">${esc(r)}</text>
+        </g>`,
+    )
+    .join("");
+
+  const roleItems = roles
+    .map(
+      (r, i) => `
+        <g transform="translate(${i < 2 ? 0 : 196}, ${i % 2 === 0 ? 0 : 84})">
+          <rect width="178" height="68" rx="16" fill="rgba(255,255,255,0.03)" />
+          <rect x="14" y="14" width="8" height="40" rx="4" fill="${r.accent}" />
+          <text x="32" y="31" fill="#f3f5ef" font-size="12" font-weight="700">${esc(r.label)}</text>
+        </g>`,
+    )
     .join("");
 
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1660" viewBox="0 0 1440 1660">
       <defs>
         <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#081018" />
-          <stop offset="100%" stop-color="#0b1420" />
+          <stop offset="0%" stop-color="#050607" />
+          <stop offset="100%" stop-color="#0b0e0d" />
         </linearGradient>
-        <linearGradient id="heroGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="rgba(34,211,238,0.16)" />
-          <stop offset="100%" stop-color="rgba(245,158,11,0.12)" />
-        </linearGradient>
-        <pattern id="grid" width="96" height="96" patternUnits="userSpaceOnUse">
-          <path d="M96 0 L0 0 0 96" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1" />
+        <pattern id="grid" width="88" height="88" patternUnits="userSpaceOnUse">
+          <path d="M88 0 L0 0 0 88" fill="none" stroke="rgba(255,255,255,0.045)" stroke-width="1" />
         </pattern>
       </defs>
 
-      <rect width="${width}" height="${height}" fill="url(#bg)" />
-      <rect width="${width}" height="${height}" fill="url(#grid)" opacity="0.55" />
-      <circle cx="${mobile ? 40 : 120}" cy="90" r="${mobile ? 150 : 220}" fill="rgba(245,158,11,0.14)" />
-      <circle cx="${mobile ? 340 : 1180}" cy="140" r="${mobile ? 110 : 180}" fill="rgba(34,211,238,0.14)" />
-      <circle cx="${mobile ? 280 : 980}" cy="${mobile ? 2200 : 980}" r="${mobile ? 100 : 180}" fill="rgba(251,113,133,0.1)" />
+      <rect width="1440" height="1660" fill="url(#bg)" />
+      <rect width="1440" height="1660" fill="url(#grid)" opacity="0.75" />
+      <circle cx="120" cy="120" r="250" fill="rgba(199,255,85,0.12)" />
+      <circle cx="1220" cy="170" r="210" fill="rgba(255,184,77,0.11)" />
+      <circle cx="1140" cy="1180" r="190" fill="rgba(255,111,143,0.08)" />
 
-      <g transform="translate(${mobile ? 20 : 48}, ${mobile ? 24 : 36})">
-        <rect width="${mobile ? 350 : 1144}" height="${mobile ? 330 : 260}" rx="28" fill="url(#heroGrad)" stroke="rgba(255,255,255,0.1)" />
-        <text x="24" y="38" fill="#9fb0c7" font-size="12" letter-spacing="3">AEGIS / ACCESS</text>
-        <text x="24" y="${mobile ? 90 : 110}" fill="#eef3fb" font-size="${mobile ? 30 : 56}" font-weight="700" letter-spacing="-2">Access approvals.</text>
-        <text x="24" y="${mobile ? 144 : 156}" fill="#9fb0c7" font-size="${mobile ? 13 : 20}">English: Review who can enter, who approved it, and how every change was recorded.</text>
-        <text x="24" y="${mobile ? 172 : 188}" fill="#9fb0c7" font-size="${mobile ? 13 : 20}">Español: Revisa quién tiene acceso, quién aprobó y cómo quedó registrado cada cambio.</text>
-        <rect x="24" y="${mobile ? 220 : 206}" width="${mobile ? 142 : 176}" height="44" rx="22" fill="#f59e0b" />
-        <text x="${mobile ? 95 : 112}" y="${mobile ? 248 : 234}" text-anchor="middle" fill="#081018" font-size="14" font-weight="800">Review / Revisar</text>
-        <rect x="${mobile ? 176 : 214}" y="${mobile ? 220 : 206}" width="${mobile ? 148 : 180}" height="44" rx="22" fill="rgba(255,255,255,0.04)" />
-        <text x="${mobile ? 250 : 304}" y="${mobile ? 248 : 234}" text-anchor="middle" fill="#eef3fb" font-size="14" font-weight="700">Export / Exportar</text>
+      <g transform="translate(34,28)">
+        <rect width="1372" height="76" rx="18" fill="rgba(13,16,15,0.82)" stroke="rgba(255,255,255,0.08)" />
+        <text x="18" y="32" fill="#f3f5ef" font-size="15" font-weight="700" letter-spacing="2">AEGIS / ACCESS</text>
+        <text x="18" y="54" fill="#9ca79f" font-size="12">Security console / Consola de seguridad</text>
+        <rect x="1120" y="20" width="220" height="24" rx="12" fill="rgba(255,255,255,0.04)" />
+        <text x="1230" y="37" text-anchor="middle" fill="#c7ff55" font-size="10" font-weight="700">Zero trust / Confianza cero</text>
       </g>
 
-      ${statCards}
-
-      <g transform="translate(${mobile ? 20 : 48}, ${mobile ? 534 : 500})">
-        <rect width="${mobile ? 350 : 1144}" height="${mobile ? 720 : 620}" rx="26" fill="rgba(17,26,38,0.94)" stroke="rgba(255,255,255,0.1)" />
-        <text x="24" y="36" fill="#9fb0c7" font-size="11" letter-spacing="2.5">REQUESTS / SOLICITUDES</text>
-        <text x="24" y="66" fill="#eef3fb" font-size="24" font-weight="700">Pending access approvals</text>
-        <text x="${mobile ? 24 : 806}" y="66" fill="#9fb0c7" font-size="14">${mobile ? "Queue and notes / Cola y notas" : "Audit / Auditoría"}</text>
+      <g transform="translate(34,126)">
+        <rect width="770" height="214" rx="28" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="24" y="34" fill="#9ca79f" font-size="11" letter-spacing="2.2">ACCESS DECISIONS / DECISIONES DE ACCESO</text>
+        <text x="24" y="88" fill="#f3f5ef" font-size="60" font-weight="700" letter-spacing="-2.5">Access approvals.</text>
+        <text x="24" y="126" fill="#9ca79f" font-size="18">English: Access requests, policy checks, and audit evidence in one view.</text>
+        <text x="24" y="154" fill="#9ca79f" font-size="18">Español: Solicitudes, políticas y auditoría en una sola vista.</text>
+        <rect x="24" y="172" width="174" height="38" rx="19" fill="#c7ff55" />
+        <text x="111" y="196" text-anchor="middle" fill="#0a0b08" font-size="13" font-weight="800">Review queue / Revisar</text>
       </g>
 
-      ${requestCards}
-
-      <g transform="translate(${mobile ? 20 : 48}, ${mobile ? 1268 : 792})">
-        <rect width="${mobile ? 350 : 740}" height="${mobile ? 300 : 220}" rx="26" fill="rgba(17,26,38,0.94)" stroke="rgba(255,255,255,0.1)" />
-        <text x="24" y="34" fill="#9fb0c7" font-size="11" letter-spacing="2.5">ROLES / ROLES</text>
-        <text x="24" y="64" fill="#eef3fb" font-size="24" font-weight="700">Permission matrix</text>
+      <g transform="translate(842,126)">
+        <rect width="564" height="214" rx="28" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="24" y="34" fill="#9ca79f" font-size="11" letter-spacing="2.2">LIVE SIGNALS / SEÑALES EN VIVO</text>
+        ${signalTiles}
       </g>
 
-      ${roleCards}
+      ${metricCards}
 
-      <g transform="translate(${mobile ? 20 : 800}, ${mobile ? 1768 : 500})">
-        <rect width="${mobile ? 350 : 392}" height="${mobile ? 374 : 430}" rx="26" fill="rgba(17,26,38,0.94)" stroke="rgba(255,255,255,0.1)" />
-        <text x="24" y="34" fill="#9fb0c7" font-size="11" letter-spacing="2.5">AUDIT / AUDITORÍA</text>
-        <text x="24" y="64" fill="#eef3fb" font-size="24" font-weight="700">Change log</text>
+      <g transform="translate(34, 514)">
+        <rect width="770" height="944" rx="28" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="24" y="34" fill="#9ca79f" font-size="11" letter-spacing="2.2">QUEUE / COLA</text>
+        <text x="24" y="64" fill="#f3f5ef" font-size="28" font-weight="700">Pending access reviews</text>
+        ${queueRows}
       </g>
 
-      ${auditItems}
-
-      <g transform="translate(${mobile ? 20 : 800}, ${mobile ? 2140 : 956})">
-        <rect width="${mobile ? 350 : 392}" height="${mobile ? 164 : 178}" rx="26" fill="rgba(17,26,38,0.94)" stroke="rgba(255,255,255,0.1)" />
-        <text x="24" y="34" fill="#9fb0c7" font-size="11" letter-spacing="2.5">POLICY / POLÍTICA</text>
-        <text x="24" y="64" fill="#eef3fb" font-size="24" font-weight="700">Enforcement checks</text>
+      <g transform="translate(842, 514)">
+        <rect width="564" height="456" rx="28" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="24" y="34" fill="#9ca79f" font-size="11" letter-spacing="2.2">AUDIT / AUDITORÍA</text>
+        <text x="24" y="64" fill="#f3f5ef" font-size="28" font-weight="700">Immutable activity</text>
+        ${auditItems}
       </g>
 
-      ${policyItems}
+      <g transform="translate(842, 988)">
+        <rect width="564" height="254" rx="28" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="24" y="34" fill="#9ca79f" font-size="11" letter-spacing="2.2">POLICY / POLÍTICA</text>
+        <text x="24" y="64" fill="#f3f5ef" font-size="28" font-weight="700">Enforcement rules</text>
+        ${rulesItems}
+      </g>
+
+      <g transform="translate(34, 1494)">
+        <rect width="1372" height="118" rx="28" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="24" y="34" fill="#9ca79f" font-size="11" letter-spacing="2.2">ROLE LATTICE / MATRIZ DE ROLES</text>
+        <text x="24" y="64" fill="#f3f5ef" font-size="26" font-weight="700">Who can do what / Quién puede hacer qué</text>
+        <g transform="translate(920, 18)">${roleItems}</g>
+      </g>
+    </svg>`;
+}
+
+function mobileSvg() {
+  const signalTiles = signals
+    .map(
+      (s, i) => `
+        <g transform="translate(18, ${40 + i * 92})">
+          <rect width="354" height="80" rx="14" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.05)" />
+          <text x="12" y="20" fill="#9ca79f" font-size="8" letter-spacing="1.8">${esc(wrap(s.label, 26))}</text>
+          <text x="12" y="44" fill="#f3f5ef" font-size="15" font-weight="700">${esc(wrap(s.value, 18))}</text>
+          <text x="12" y="64" fill="#9ca79f" font-size="9">${esc(wrap(s.detail, 34))}</text>
+        </g>`,
+    )
+    .join("");
+
+  const metricCards = metrics
+    .map(
+      (m, i) => {
+        const x = i % 2 === 0 ? 18 : 196;
+        const y = 690 + Math.floor(i / 2) * 110;
+        return `
+        <g transform="translate(${x}, ${y})">
+          <rect width="176" height="94" rx="16" fill="rgba(15,18,17,0.95)" stroke="rgba(255,255,255,0.08)" />
+          <text x="12" y="22" fill="#9ca79f" font-size="8" letter-spacing="1.6">${esc(wrap(m.label, 18))}</text>
+          <text x="12" y="58" fill="#f3f5ef" font-size="26" font-weight="700">${esc(m.value)}</text>
+          <rect x="12" y="68" width="150" height="16" rx="8" fill="rgba(255,255,255,0.04)" />
+          <text x="87" y="79" text-anchor="middle" fill="${m.tone}" font-size="7.5" font-weight="700">${esc(wrap(m.delta, 20))}</text>
+        </g>`;
+      },
+    )
+    .join("");
+
+  const queueRows = queue
+    .map(
+      (q, i) => `
+        <g transform="translate(18, ${96 + i * 86})">
+          <rect width="354" height="76" rx="14" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.05)" />
+          <text x="12" y="22" fill="#f3f5ef" font-size="12" font-weight="700">${esc(wrap(q.user, 24))}</text>
+          <text x="12" y="40" fill="#9ca79f" font-size="9">${esc(wrap(q.access, 28))}</text>
+          <rect x="220" y="16" width="116" height="20" rx="10" fill="rgba(255,255,255,0.04)" />
+          <text x="278" y="29" text-anchor="middle" fill="#6fe7ff" font-size="8.5" font-weight="700">${esc(wrap(q.status, 18))}</text>
+        </g>`,
+    )
+    .join("");
+
+  const auditItems = audit
+    .map(
+      (a, i) => `
+        <g transform="translate(18, ${88 + i * 72})">
+          <circle cx="6" cy="8" r="5" fill="#c7ff55" />
+          <text x="20" y="12" fill="#f3f5ef" font-size="11" font-weight="700">${esc(wrap(a.title, 24))}</text>
+          <text x="20" y="30" fill="#9ca79f" font-size="9">${esc(wrap(a.detail, 30))}</text>
+          <text x="20" y="46" fill="#9ca79f" font-size="9">${esc(a.time)}</text>
+        </g>`,
+    )
+    .join("");
+
+  const rulesItems = rules
+    .map(
+      (r, i) => `
+        <g transform="translate(18, ${88 + i * 40})">
+          <rect width="354" height="34" rx="11" fill="rgba(255,255,255,0.03)" />
+          <text x="12" y="22" fill="#9ca79f" font-size="9">${esc(wrap(r, 40))}</text>
+        </g>`,
+    )
+    .join("");
+
+  const roleItems = roles
+    .map(
+      (r, i) => `
+        <g transform="translate(${18 + (i % 2) * 182}, ${90 + Math.floor(i / 2) * 64})">
+          <rect width="172" height="56" rx="14" fill="rgba(255,255,255,0.03)" />
+          <rect x="12" y="10" width="7" height="34" rx="3.5" fill="${r.accent}" />
+          <text x="28" y="28" fill="#f3f5ef" font-size="10.5" font-weight="700">${esc(wrap(r.label, 16))}</text>
+        </g>`,
+    )
+    .join("");
+
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="390" height="2060" viewBox="0 0 390 2060">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#050607" />
+          <stop offset="100%" stop-color="#0b0e0d" />
+        </linearGradient>
+        <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
+          <path d="M80 0 L0 0 0 80" fill="none" stroke="rgba(255,255,255,0.045)" stroke-width="1" />
+        </pattern>
+      </defs>
+
+      <rect width="390" height="2060" fill="url(#bg)" />
+      <rect width="390" height="2060" fill="url(#grid)" opacity="0.75" />
+      <circle cx="48" cy="96" r="140" fill="rgba(199,255,85,0.12)" />
+      <circle cx="340" cy="160" r="110" fill="rgba(255,184,77,0.11)" />
+      <circle cx="318" cy="1840" r="120" fill="rgba(255,111,143,0.08)" />
+
+      <g transform="translate(18,18)">
+        <rect width="354" height="70" rx="16" fill="rgba(13,16,15,0.82)" stroke="rgba(255,255,255,0.08)" />
+        <text x="14" y="30" fill="#f3f5ef" font-size="14" font-weight="700" letter-spacing="2">AEGIS / ACCESS</text>
+        <text x="14" y="50" fill="#9ca79f" font-size="10">Security console / Consola de seguridad</text>
+      </g>
+
+      <g transform="translate(18,106)">
+        <rect width="354" height="230" rx="24" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="14" y="24" fill="#9ca79f" font-size="9" letter-spacing="2">ACCESS DECISIONS / DECISIONES</text>
+        <text x="14" y="70" fill="#f3f5ef" font-size="30" font-weight="700" letter-spacing="-1.5">Access approvals.</text>
+        <text x="14" y="102" fill="#9ca79f" font-size="11">English: Access requests, policy checks, and audit evidence.</text>
+        <text x="14" y="122" fill="#9ca79f" font-size="11">Español: Solicitudes, políticas y auditoría en una sola vista.</text>
+        <rect x="14" y="156" width="138" height="36" rx="18" fill="#c7ff55" />
+        <text x="83" y="179" text-anchor="middle" fill="#0a0b08" font-size="12" font-weight="800">Review / Revisar</text>
+        <rect x="162" y="156" width="110" height="36" rx="18" fill="rgba(255,255,255,0.04)" />
+        <text x="217" y="179" text-anchor="middle" fill="#f3f5ef" font-size="12" font-weight="700">Export / Exportar</text>
+      </g>
+
+      <g transform="translate(18,348)">
+        <rect width="354" height="316" rx="24" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="14" y="28" fill="#9ca79f" font-size="9" letter-spacing="2">LIVE SIGNALS / SEÑALES</text>
+        ${signalTiles}
+      </g>
+
+      ${metricCards}
+
+      <g transform="translate(18,936)">
+        <rect width="354" height="320" rx="24" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="14" y="28" fill="#9ca79f" font-size="9" letter-spacing="2">QUEUE / COLA</text>
+        <text x="14" y="52" fill="#f3f5ef" font-size="24" font-weight="700">Pending access reviews</text>
+        ${queueRows}
+      </g>
+
+      <g transform="translate(18,1276)">
+        <rect width="354" height="300" rx="24" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="14" y="28" fill="#9ca79f" font-size="9" letter-spacing="2">AUDIT / AUDITORÍA</text>
+        <text x="14" y="52" fill="#f3f5ef" font-size="24" font-weight="700">Immutable activity</text>
+        ${auditItems}
+      </g>
+
+      <g transform="translate(18,1596)">
+        <rect width="354" height="188" rx="24" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="14" y="28" fill="#9ca79f" font-size="9" letter-spacing="2">POLICY / POLÍTICA</text>
+        <text x="14" y="52" fill="#f3f5ef" font-size="24" font-weight="700">Enforcement rules</text>
+        ${rulesItems}
+      </g>
+
+      <g transform="translate(18,1828)">
+        <rect width="354" height="220" rx="24" fill="rgba(15,18,17,0.96)" stroke="rgba(255,255,255,0.08)" />
+        <text x="14" y="28" fill="#9ca79f" font-size="9" letter-spacing="2">ROLE LATTICE / ROLES</text>
+        <text x="14" y="52" fill="#f3f5ef" font-size="24" font-weight="700">Who can do what</text>
+        ${roleItems}
+      </g>
     </svg>`;
 }
 
 async function main() {
   await mkdir(outputDir, { recursive: true });
-  await sharp(Buffer.from(pageSvg(1440, 1420, false))).png().toFile(
+  await sharp(Buffer.from(desktopSvg())).png().toFile(
     fileURLToPath(new URL("./aegis-access-portal-home-desktop.png", outputDir)),
   );
-  await sharp(Buffer.from(pageSvg(390, 2320, true))).png().toFile(
+  await sharp(Buffer.from(mobileSvg())).png().toFile(
     fileURLToPath(new URL("./aegis-access-portal-home-mobile.png", outputDir)),
   );
 }
