@@ -1,0 +1,39 @@
+{
+  "name": "aegis-access-portal",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A bilingual access control portal with role management and audit visibility.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier . --check",
+    "format:write": "prettier . --write",
+    "screenshots": "bash scripts/capture-screenshots.sh",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "next": "^15.5.20",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@types/node": "^22.15.21",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "eslint": "^9.29.0",
+    "eslint-config-next": "^15.5.20",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.5.3",
+    "sharp": "^0.34.5",
+    "typescript": "^5.8.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,css}": [
+      "prettier --write"
+    ]
+  }
+}
